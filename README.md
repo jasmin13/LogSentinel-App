@@ -2,6 +2,10 @@
 
 An enterprise-ready, 100% offline IT infrastructure and security diagnostics platform powered by an air-gapped private AI engine. Transforms unstructured server dumps, Kubernetes crashes, database deadlocks, and security logs into structured incident reports with root cause analysis (RCA) and actionable remediation commands.
 
+<p align="center">
+  <img src="assets/logsentinel_demo.png" alt="LogSentinel Studio Interface" width="850"/>
+</p>
+
 ---
 
 ## 🔒 Enterprise Privacy & Compliance
