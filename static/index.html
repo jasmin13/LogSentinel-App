@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LogSentinel Studio - Enterprise On-Premises Log & Incident Diagnostics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #070a13;
+      --bg-surface: #0e1424;
+      --bg-card: rgba(17, 24, 39, 0.75);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(6, 182, 212, 0.5);
+      --primary: #06b6d4;
+      --primary-glow: rgba(6, 182, 212, 0.25);
+      --accent: #3b82f6;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --card-highlight: #1e293b;
+      --severity-crit: #f43f5e;
+      --severity-crit-bg: rgba(244, 63, 94, 0.12);
+      --severity-high: #fb7185;
+      --severity-high-bg: rgba(251, 113, 133, 0.12);
+      --severity-warn: #fbbf24;
+      --severity-warn-bg: rgba(251, 191, 36, 0.12);
+      --severity-info: #38bdf8;
+      --severity-info-bg: rgba(56, 189, 248, 0.12);
+      --success: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 10% 10%, rgba(6, 182, 212, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 90%, rgba(244, 63, 94, 0.06) 0%, transparent 40%);
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      background: rgba(7, 10, 19, 0.85);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      padding: 0.875rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.875rem;
+    }
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, #06b6d4, #0891b2);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      box-shadow: 0 4px 16px var(--primary-glow);
+    }
+
+    .brand-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .header-badges {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      transition: all 0.3s ease;
+    }
+
+    .badge-engine {
+      color: var(--severity-warn);
+      border-color: rgba(251, 191, 36, 0.3);
+      background: rgba(251, 191, 36, 0.08);
+    }
+
+    .badge-engine.ready {
+      color: var(--success);
+      border-color: rgba(16, 185, 129, 0.3);
+      background: rgba(16, 185, 129, 0.08);
+    }
+
+    .badge-security {
+      color: #38bdf8;
+      border-color: rgba(56, 189, 248, 0.3);
+      background: rgba(56, 189, 248, 0.08);
+    }
+
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 8px currentColor;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    main {
+      flex: 1;
+      padding: 2rem;
+      max-width: 1600px;
+      width: 100%;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.75rem;
+    }
+
+    @media (max-width: 1024px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      backdrop-filter: blur(16px);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+    }
+
+    .panel-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .presets-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .preset-label {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: -0.25rem;
+    }
+
+    .btn-preset {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 8px;
+      padding: 0.4rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .btn-preset:hover {
+      background: rgba(6, 182, 212, 0.12);
+      color: var(--primary);
+      border-color: rgba(6, 182, 212, 0.35);
+    }
+
+    .textarea-wrapper {
+      position: relative;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 380px;
+      flex: 1;
+      background: rgba(7, 10, 19, 0.75);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: #e2e8f0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.825rem;
+      padding: 1.25rem;
+      resize: vertical;
+      line-height: 1.6;
+      transition: border 0.2s;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    .action-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #06b6d4, #0891b2);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 0.8rem 1.75rem;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 16px var(--primary-glow);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    .btn-primary:not(:disabled):hover {
+      opacity: 0.95;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px var(--primary-glow);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 10px;
+      padding: 0.8rem 1.25rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-main);
+    }
+
+    .tab-bar {
+      display: flex;
+      gap: 0.5rem;
+      background: rgba(7, 10, 19, 0.6);
+      padding: 0.3rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.4rem 0.9rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .tab-btn.active {
+      background: var(--card-highlight);
+      color: var(--text-main);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .metrics-bar {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border);
+      font-size: 0.75rem;
+    }
+
+    .metric-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--text-muted);
+    }
+
+    .metric-value {
+      color: var(--text-main);
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Incident Output Cards */
+    .incident-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      flex: 1;
+      overflow-y: auto;
+      max-height: 520px;
+      padding-right: 0.25rem;
+    }
+
+    .severity-header-card {
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.85);
+      transition: all 0.3s ease;
+    }
+
+    .severity-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .sev-critical {
+      background: var(--severity-crit-bg);
+      color: var(--severity-crit);
+      border: 1px solid rgba(244, 63, 94, 0.35);
+      box-shadow: 0 0 16px rgba(244, 63, 94, 0.2);
+    }
+
+    .sev-high {
+      background: var(--severity-high-bg);
+      color: var(--severity-high);
+      border: 1px solid rgba(251, 113, 133, 0.35);
+    }
+
+    .sev-warning {
+      background: var(--severity-warn-bg);
+      color: var(--severity-warn);
+      border: 1px solid rgba(251, 191, 36, 0.35);
+    }
+
+    .sev-info {
+      background: var(--severity-info-bg);
+      color: var(--severity-info);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+    }
+
+    .service-badge {
+      font-size: 0.8rem;
+      padding: 0.3rem 0.75rem;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
+    .error-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-top: 0.5rem;
+    }
+
+    .diagnostic-box {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .box-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .box-content, .rca-container {
+      background: rgba(7, 10, 19, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 1.15rem 1.35rem;
+      font-size: 0.92rem;
+      line-height: 1.65;
+      letter-spacing: normal;
+      word-spacing: normal;
+      color: #e2e8f0;
+      font-weight: 400;
+    }
+
+    .fix-container {
+      background: #070a13;
+      border: 1px solid rgba(6, 182, 212, 0.25);
+      border-radius: 10px;
+      padding: 1.15rem 1.35rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: #38bdf8;
+      line-height: 1.65;
+      letter-spacing: normal;
+      word-spacing: normal;
+    }
+
+    .btn-copy-fix {
+      position: static;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
+      color: #cbd5e1;
+      padding: 0.25rem 0.65rem;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+
+    .btn-copy-fix:hover {
+      background: rgba(6, 182, 212, 0.2);
+      color: #38bdf8;
+      border-color: rgba(6, 182, 212, 0.4);
+    }
+
+    /* JSON Code View */
+    .json-code-container {
+      flex: 1;
+      display: none;
+      position: relative;
+    }
+
+    pre code {
+      display: block;
+      background: #070a13;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.825rem;
+      line-height: 1.6;
+      color: #38bdf8;
+      overflow-x: auto;
+      height: 100%;
+      max-height: 520px;
+    }
+
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--text-dim);
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+    }
+
+    .empty-state-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+      opacity: 0.6;
+    }
+
+    .notice-banner {
+      display: none;
+      padding: 0.65rem 1rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-top: 0.5rem;
+    }
+
+    .notice-banner.error {
+      display: block;
+      background: rgba(244, 63, 94, 0.12);
+      border: 1px solid rgba(244, 63, 94, 0.35);
+      color: #fca5a5;
+    }
+
+    .notice-banner.info {
+      display: block;
+      background: rgba(6, 182, 212, 0.12);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      color: #93c5fd;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      background: rgba(7, 10, 19, 0.7);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-icon">🛡️</div>
+      <div>
+        <div class="brand-title">LogSentinel Studio</div>
+        <div class="brand-subtitle">Enterprise On-Premises Log & Incident Diagnostics</div>
+      </div>
+    </div>
+    <div class="header-badges">
+      <div class="badge badge-engine" id="engineBadge">
+        <span class="pulse-dot"></span>
+        <span id="engineStatus">AI Engine: Warming Up...</span>
+      </div>
+      <div class="badge badge-security">
+        🔒 100% Offline / Zero External PII Leaks
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Left: Log Input -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">📡 System & Application Log Stream</div>
+        <button class="btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;" onclick="clearInput()">Clear</button>
+      </div>
+
+      <div>
+        <div class="preset-label" style="margin-bottom: 0.4rem;">Sample Incident Presets</div>
+        <div class="presets-container">
+          <button class="btn-preset" onclick="loadPreset('nginx')">🌐 Nginx 504 Timeout</button>
+          <button class="btn-preset" onclick="loadPreset('k8s')">🐳 K8s OOMKilled</button>
+          <button class="btn-preset" onclick="loadPreset('postgres')">🐘 Postgres Deadlock</button>
+          <button class="btn-preset" onclick="loadPreset('ssh')">🛡️ SSH Brute Force</button>
+          <button class="btn-preset" onclick="loadPreset('node')">⚡ Node Heap OOM</button>
+          <button class="btn-preset" onclick="loadPreset('waf')">🔥 WAF SQL Injection</button>
+        </div>
+      </div>
+
+      <div class="textarea-wrapper">
+        <textarea id="logInput" placeholder="Paste server logs, Kubernetes crash dumps, PostgreSQL traces, or Docker output here..."></textarea>
+      </div>
+
+      <div id="noticeBanner" class="notice-banner"></div>
+
+      <div class="action-row">
+        <span style="font-size: 0.75rem; color: var(--text-dim);">Shortcuts: <kbd style="background: rgba(255,255,255,0.08); padding: 2px 5px; border-radius: 4px;">Ctrl+Enter</kbd> to run</span>
+        <button class="btn-primary" id="diagnoseBtn" onclick="runDiagnosis()" disabled>
+          <span id="btnIcon">⏳</span>
+          <span id="btnText">Warming Up AI Engine...</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Right: Incident Report -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">🔍 Diagnostic Intelligence & Remediation</div>
+        <div class="tab-bar">
+          <button class="tab-btn active" id="tabCardBtn" onclick="switchTab('card')">Incident Report</button>
+          <button class="tab-btn" id="tabJsonBtn" onclick="switchTab('json')">Diagnostic JSON</button>
+        </div>
+      </div>
+
+      <div class="metrics-bar">
+        <div class="metric-item">
+          <span>Latency:</span>
+          <span class="metric-value" id="metricLatency">-- ms</span>
+        </div>
+        <div class="metric-item">
+          <span>Tokens:</span>
+          <span class="metric-value" id="metricTokens">--</span>
+        </div>
+        <div class="metric-item">
+          <span>Engine:</span>
+          <span class="metric-value" id="metricEngine">Local Edge</span>
+        </div>
+      </div>
+
+      <!-- Incident Report View -->
+      <div class="incident-container" id="cardContainer">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-state-icon">🛡️</div>
+          <p style="font-weight: 600; color: var(--text-muted); margin-bottom: 0.25rem;">No Incident Analyzed Yet</p>
+          <p style="font-size: 0.8rem;">Select an incident preset on the left or paste your own raw log stream.</p>
+        </div>
+
+        <div id="cardContent" style="display: none; flex-direction: column; gap: 1rem;">
+          <!-- Severity & Service Header Card -->
+          <div class="severity-header-card">
+            <div>
+              <div class="service-badge" id="cardService">SERVICE: --</div>
+              <div class="error-title" id="cardErrorType">--</div>
+            </div>
+            <div>
+              <div class="severity-tag" id="cardSeverityTag">SEVERITY</div>
+            </div>
+          </div>
+
+          <!-- Root Cause Analysis Card -->
+          <div class="diagnostic-box">
+            <div class="box-title">🔎 Root Cause Analysis (RCA)</div>
+            <div class="rca-container" id="cardRootCause">--</div>
+          </div>
+
+          <!-- Actionable Remediation Card -->
+          <div class="diagnostic-box">
+            <div class="box-title" style="display: flex; justify-content: space-between; align-items: center;">
+              <span>🛠️ Recommended Remediation & CLI Fix</span>
+              <button class="btn-copy-fix" onclick="copyFixCommand()">📋 Copy Fix</button>
+            </div>
+            <div class="fix-container">
+              <div id="cardFixCode" style="white-space: pre-wrap;">--</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- JSON Code View -->
+      <div class="json-code-container" id="jsonContainer">
+        <pre><code id="jsonCodeBlock">// Diagnostic JSON will appear here</code></pre>
+      </div>
+
+      <div class="action-row" style="border-top: 1px solid var(--border); padding-top: 1rem;">
+        <button class="btn-secondary" onclick="copyJson()">📋 Copy Full Report</button>
+        <button class="btn-secondary" onclick="downloadJson()">💾 Download .json</button>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div>LogSentinel Studio • Air-Gapped Local Intelligence System</div>
+    <div>Zero external telemetry • 100% On-Premises Runtime</div>
+  </footer>
+
+  <script>
+    const PRESETS = {
+      nginx: `2024/11/04 14:22:01 [error] 1892#1892: *4011 upstream timed out (110: Connection timed out) while reading response header from upstream, client: 192.168.1.45, server: api.acme.corp, request: 'POST /v1/checkout HTTP/1.1', upstream: 'http://10.0.4.12:8080/v1/checkout'`,
+
+      k8s: `Normal Killing 10s kubelet, node-us-central1-c-4 Container payment-processor in pod payment-processor-64b5f8c65d-m9v8p terminated with exit code 137 (OOMKilled): memory limit exceeded (used: 512Mi, limit: 512Mi)`,
+
+      postgres: `2024-11-01 10:14:02.114 UTC [29410] ERROR: deadlock detected
+2024-11-01 10:14:02.114 UTC [29410] DETAIL: Process 29410 waits for ShareLock on transaction 889102; blocked by process 29412.
+Process 29412 waits for ExclusiveLock on tuple (412, 19) of relation 16384 of database 16385; blocked by process 29410.`,
+
+      ssh: `Nov 04 12:44:19 sec-bastion sshd[22819]: Failed password for root from 198.51.100.44 port 49211 ssh2
+Nov 04 12:44:21 sec-bastion sshd[22822]: Failed password for root from 198.51.100.44 port 49216 ssh2
+Nov 04 12:44:23 sec-bastion sshd[22825]: Failed password for root from 198.51.100.44 port 49220 ssh2`,
+
+      node: `FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
+ 1: 0xb09140 node::Abort() [node]
+ 2: 0xa1c28b node::FatalError(char const*, char const*) [node]`,
+
+      waf: `2024-10-19 19:40:11 WAF-ALERT [Rule 942100]: SQL Injection Attempt Detected: client=185.220.101.5 uri='/products?id=1%20UNION%20SELECT%20null,username,password%20FROM%20users--'`
+    };
+
+    let latestDiagnosticData = null;
+    let isModelReady = false;
+    let timerInterval = null;
+
+    function showNotice(text, type = 'error') {
+      const banner = document.getElementById('noticeBanner');
+      banner.textContent = text;
+      banner.className = 'notice-banner ' + type;
+      banner.style.display = 'block';
+    }
+
+    function hideNotice() {
+      document.getElementById('noticeBanner').style.display = 'none';
+    }
+
+    function loadPreset(key) {
+      document.getElementById('logInput').value = PRESETS[key] || '';
+      hideNotice();
+    }
+
+    function clearInput() {
+      document.getElementById('logInput').value = '';
+      hideNotice();
+    }
+
+    function switchTab(mode) {
+      const cardTab = document.getElementById('tabCardBtn');
+      const jsonTab = document.getElementById('tabJsonBtn');
+      const cardContainer = document.getElementById('cardContainer');
+      const jsonContainer = document.getElementById('jsonContainer');
+
+      if (mode === 'card') {
+        cardTab.classList.add('active');
+        jsonTab.classList.remove('active');
+        cardContainer.style.display = 'flex';
+        jsonContainer.style.display = 'none';
+      } else {
+        jsonTab.classList.add('active');
+        cardTab.classList.remove('active');
+        cardContainer.style.display = 'none';
+        jsonContainer.style.display = 'block';
+      }
+    }
+
+    async function runDiagnosis() {
+      if (!isModelReady) {
+        showNotice("AI Engine is still warming up. Please wait a few seconds...", "info");
+        return;
+      }
+
+      const logText = document.getElementById('logInput').value.trim();
+      if (!logText) {
+        showNotice("Please enter or select a log entry first.");
+        return;
+      }
+      hideNotice();
+
+      const btn = document.getElementById('diagnoseBtn');
+      const btnIcon = document.getElementById('btnIcon');
+      const btnText = document.getElementById('btnText');
+      btn.disabled = true;
+
+      let elapsedSeconds = 0;
+      btnIcon.textContent = "⏳";
+      btnText.textContent = `Analyzing Log... (0s)`;
+      timerInterval = setInterval(() => {
+        elapsedSeconds++;
+        btnText.textContent = `Analyzing Log... (${elapsedSeconds}s)`;
+      }, 1000);
+
+      try {
+        const response = await fetch('/api/diagnose', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ log_text: logText })
+        });
+
+        const res = await response.json();
+        if (res.success && res.data) {
+          latestDiagnosticData = res.data;
+          renderResults(res.data, res.latency_ms, res.tokens_generated, res.engine);
+        } else {
+          showNotice(res.error || "Diagnostic parsing failed. Please retry.");
+        }
+      } catch (err) {
+        showNotice("Connection dropped or engine busy. Please retry.");
+      } finally {
+        clearInterval(timerInterval);
+        btn.disabled = false;
+        btnIcon.textContent = "⚡";
+        btnText.textContent = "Run Incident Diagnostics";
+      }
+    }
+
+    function renderResults(data, latency, tokens, engine) {
+      document.getElementById('metricLatency').textContent = latency + ' ms';
+      document.getElementById('metricTokens').textContent = tokens || '--';
+      if (engine) document.getElementById('metricEngine').textContent = engine;
+
+      document.getElementById('emptyState').style.display = 'none';
+      document.getElementById('cardContent').style.display = 'flex';
+
+      // Severity tag
+      const sevTag = document.getElementById('cardSeverityTag');
+      const sev = (data.severity || 'INFO').toUpperCase();
+      sevTag.textContent = sev;
+      sevTag.className = 'severity-tag';
+      if (sev === 'CRITICAL') sevTag.classList.add('sev-critical');
+      else if (sev === 'HIGH') sevTag.classList.add('sev-high');
+      else if (sev === 'WARNING') sevTag.classList.add('sev-warning');
+      else sevTag.classList.add('sev-info');
+
+      // Service & Error
+      document.getElementById('cardService').textContent = 'SERVICE: ' + (data.service || 'System');
+      document.getElementById('cardErrorType').textContent = data.error_type || 'Unclassified Event';
+      document.getElementById('cardRootCause').textContent = data.root_cause || 'No root cause specified.';
+      document.getElementById('cardFixCode').textContent = data.recommended_fix || 'No remediation suggested.';
+
+      // Strict JSON
+      document.getElementById('jsonCodeBlock').textContent = JSON.stringify(data, null, 2);
+    }
+
+    function copyFixCommand() {
+      if (!latestDiagnosticData || !latestDiagnosticData.recommended_fix) return;
+      navigator.clipboard.writeText(latestDiagnosticData.recommended_fix);
+      showNotice("Remediation command copied to clipboard!", "info");
+    }
+
+    function copyJson() {
+      if (!latestDiagnosticData) {
+        showNotice("No report to copy yet.", "info");
+        return;
+      }
+      navigator.clipboard.writeText(JSON.stringify(latestDiagnosticData, null, 2));
+      showNotice("Incident report copied to clipboard!", "info");
+    }
+
+    function downloadJson() {
+      if (!latestDiagnosticData) {
+        showNotice("No report to download yet.", "info");
+        return;
+      }
+      const blob = new Blob([JSON.stringify(latestDiagnosticData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `incident_report_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === 'Enter') runDiagnosis();
+    });
+
+    // Smart status polling
+    function checkEngineStatus() {
+      fetch('/api/stats')
+        .then(r => r.json())
+        .then(d => {
+          const badge = document.getElementById('engineBadge');
+          const statusText = document.getElementById('engineStatus');
+          const btn = document.getElementById('diagnoseBtn');
+          const btnIcon = document.getElementById('btnIcon');
+          const btnText = document.getElementById('btnText');
+
+          if (d.model_loaded && !d.is_loading) {
+            isModelReady = true;
+            badge.classList.add('ready');
+            statusText.textContent = "AI Engine: Ready";
+            btn.disabled = false;
+            btnIcon.textContent = "⚡";
+            btnText.textContent = "Run Incident Diagnostics";
+          } else {
+            isModelReady = false;
+            badge.classList.remove('ready');
+            statusText.textContent = "AI Engine: Warming Up...";
+            btn.disabled = true;
+            btnIcon.textContent = "⏳";
+            btnText.textContent = "Warming Up AI Engine...";
+            setTimeout(checkEngineStatus, 1500);
+          }
+        })
+        .catch(() => {
+          setTimeout(checkEngineStatus, 1500);
+        });
+    }
+
+    checkEngineStatus();
+  </script>
+</body>
+</html>
